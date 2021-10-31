@@ -1,0 +1,6 @@
+.idea
+*.DS_Store
+*.pyc
+*ckp
+*pt
+main.py
