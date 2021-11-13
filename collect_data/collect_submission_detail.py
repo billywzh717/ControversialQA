@@ -21,54 +21,30 @@ def format_body(body):
     return body
 
 
-def find_comments(submission, mode='controversial'):
-    submission.comment_sort = mode
-    comments = submission.comments.list()
-    selected_comments = []
-    for comment in comments:
-        body = format_body(comment.body)
-        if body != '[deleted]':
-            print(mode, body)
-            selected_comments.append(body)
-        if len(selected_comments) >= 5:
-            break
-    return selected_comments
-
-
-if __name__ == '__main__':
+def collect_submission_detail(subreddit):
     reddit = praw.Reddit(
         client_id='rG_vqXEAyUPj92XzyoFPDg',
         client_secret='7PBNddVKZb2qG5qpleODjEPYXpP8uQ',
         user_agent='CQA')
 
-    subreddits = [
-        # 'AskHistorians',
-        # 'askscience',
-        'AskReddit',
-        'AskWomen',
-        'AskMen'
-    ]
+    with open('../data/submission_ids/' + subreddit + '_submission_ids.txt', 'r', encoding='utf8') as fr:
+        lines = fr.readlines()
+        post_ids = [line[:-1] for line in lines]
 
-    for subreddit in subreddits:
-        with open('../data/interval_1day/' + subreddit + '_post_ids.txt', 'r', encoding='utf8') as fr:
+    already_download = set()
+    if os.path.exists('../data/details/' + subreddit + '_detail.tsv'):
+        with open('../data/details/' + subreddit + '_detail.tsv', 'r', encoding='utf8') as fr:
             lines = fr.readlines()
-            post_ids = [line[:-1] for line in lines]
+            [already_download.add(line.split('\t')[0]) for line in lines]
 
-        already_download = []
-        if os.path.exists('../data/' + subreddit + '_detail.tsv'):
-            with open('../data/' + subreddit + '_detail.tsv', 'r', encoding='utf8') as fr:
-                lines = fr.readlines()
-                already_download = [line.split('\t')[0] for line in lines]
+    for submission_id in tqdm(post_ids):
+        if TIMEOUT_AFTER_COMMENT_IN_SECS > 0:
+            time.sleep(TIMEOUT_AFTER_COMMENT_IN_SECS)
 
-        # posts_from_reddit = []
-        # comments_from_reddit = []
-        for submission_id in tqdm(post_ids):
-            if TIMEOUT_AFTER_COMMENT_IN_SECS > 0:
-                time.sleep(TIMEOUT_AFTER_COMMENT_IN_SECS)
+        if submission_id in already_download:
+            continue
 
-            if submission_id in already_download:
-                continue
-
+        try:
             submission = reddit.submission(id=submission_id)
             title = format_body(submission.title)
             num_comments = submission.num_comments
@@ -76,6 +52,25 @@ if __name__ == '__main__':
             score = submission.score
             upvote_ratio = submission.upvote_ratio
 
-            with open('../data/' + subreddit + '_detail.tsv', 'a', encoding='utf8') as fw:
-                fw.write('\t'.join([submission_id, str(num_comments), str(score), str(upvote_ratio), url, title]) + '\n')
+            with open('../data/details/' + subreddit + '_detail.tsv', 'a', encoding='utf8') as fw:
+                fw.write(
+                    '\t'.join([submission_id, str(num_comments), str(score), str(upvote_ratio), url, title]) + '\n')
 
+        except Exception as e:
+            if e.args[0] == 'received 404 HTTP response':
+                print('404', submission_id)
+                continue
+            else:
+                print(e)
+                exit(-1)
+
+
+if __name__ == '__main__':
+    subreddits = [
+        'AskReddit',
+        # 'AskWomen',
+        # 'AskMen'
+    ]
+
+    for subreddit in subreddits:
+        collect_submission_detail(subreddit)

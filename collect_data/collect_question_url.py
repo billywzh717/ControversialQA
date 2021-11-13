@@ -51,7 +51,7 @@ def pull_posts_for(subreddit, start_at, end_at):
     return post_collections
 
 
-def give_me_intervals(start_at, number_of_days_per_interval=1):
+def give_me_intervals(start_at, number_of_days_per_interval=1.0):
     end_at = math.ceil(datetime.utcnow().timestamp())
     period = (86400 * number_of_days_per_interval)
     end = start_at + period
@@ -63,25 +63,26 @@ def give_me_intervals(start_at, number_of_days_per_interval=1):
         yield int(start_at), int(end)
 
 
-subreddits = ['AskHistorians',
-              'askscience',
-              'AskReddit',
-              'AskWomen',
-              'AskMen'
-              ]
-
-for subreddit in subreddits:
+def collect_question_url(subreddit, inter=0.01):
     posts = []
     post_id_set = set()
-    start_at = math.floor((datetime.utcnow() - timedelta(days=365*10)).timestamp())
-    for interval in tqdm(give_me_intervals(start_at, 1)):
+    start_at = math.floor((datetime.utcnow() - timedelta(days=365 * 1)).timestamp())
+    for interval in tqdm(give_me_intervals(start_at, inter)):
         pulled_posts = pull_posts_for(subreddit, interval[0], interval[1])
         [post_id_set.add(post['id']) for post in pulled_posts]
         posts.extend(pulled_posts)
-        # time.sleep(.500)
-    # print(len(posts))
-    # print(len(np.unique([post['id'] for post in posts])))
 
-    with open('../data/' + subreddit + '_post_ids.txt', 'w', encoding='utf8') as fw:
+        # print(len(pulled_posts))
+    with open('../data/interval/' + subreddit + '_post_ids_1_100_1y.txt', 'w', encoding='utf8') as fw:
         for id in post_id_set:
             fw.write(id + '\n')
+
+
+if __name__ == '__main__':
+    subreddits = [
+        'AskReddit',
+        # 'AskWomen',
+        # 'AskMen'
+    ]
+    for subreddit in subreddits:
+        collect_question_url(subreddit)
