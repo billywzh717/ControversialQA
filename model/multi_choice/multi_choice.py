@@ -75,9 +75,9 @@ class MyDataset(data.Dataset):
 class TextModel(nn.Module):
     def __init__(self):
         super(TextModel, self).__init__()
-        self.model = AutoModel.from_pretrained(config.model)
-        self.tokenizer = config.tokenizer
-        self.classifier = nn.Linear(in_features=config.hidden_size, out_features=2)
+        self.model = AutoModel.from_pretrained(model_config.model)
+        self.tokenizer = model_config.tokenizer
+        self.classifier = nn.Linear(in_features=model_config.hidden_size, out_features=2)
 
     def forward(self, sentence):
         tokens = self.tokenizer(sentence,
@@ -101,7 +101,7 @@ def test(net, test_dataset):
     net.eval()
     with torch.no_grad():
         test_loader = data.DataLoader(test_dataset,
-                                      batch_size=config.test_batch_size,
+                                      batch_size=model_config.test_batch_size,
                                       shuffle=False,
                                       drop_last=False)
         ground_labels = []
@@ -111,12 +111,12 @@ def test(net, test_dataset):
             qa_choice_a = list(qa_choice_a)
             qa_choice_b = list(qa_choice_b)
 
-            con_output = torch.softmax(net(qa_choice_a), dim=1)
-            con_output = con_output[:, 0].unsqueeze(dim=1)
-            pro_output = torch.softmax(net(qa_choice_b), dim=1)
-            pro_output = pro_output[:, 0].unsqueeze(dim=1)
+            qa_choice_a_output = torch.softmax(net(qa_choice_a), dim=1)
+            qa_choice_a_output = qa_choice_a_output[:, 1].unsqueeze(dim=1)
+            qa_choice_b_output = torch.softmax(net(qa_choice_b), dim=1)
+            qa_choice_b_output = qa_choice_b_output[:, 1].unsqueeze(dim=1)
 
-            output = torch.cat([con_output, pro_output], dim=1)
+            output = torch.cat([qa_choice_a_output, qa_choice_b_output], dim=1)
             cls = torch.argmax(output, dim=1)
 
             [ground_labels.append(label.item()) for label in labels]
@@ -131,84 +131,88 @@ def test(net, test_dataset):
 
 
 def train(net):
-    optimizer = optim.Adam(net.parameters(), lr=config.lr)
+    optimizer = optim.Adam(net.parameters(), lr=model_config.lr)
     optimizer.zero_grad()
     loss = nn.CrossEntropyLoss()
     cur_best_acc = 0
 
-    for epoch in range(config.num_epoch):
-        dataset = MyDataset(data_path=config.train_data_path)
+    for epoch in range(model_config.num_epoch):
+        dataset = MyDataset(data_path=base_config.train_data_path)
         train_loader = data.DataLoader(dataset,
-                                       batch_size=config.train_batch_size,
+                                       batch_size=model_config.train_batch_size,
                                        shuffle=True,
                                        drop_last=True)
         index = 0
         batch_total_l = 0
         for labels, sentences in tqdm(train_loader):
             index += 1
-            labels = labels.to(config.device)
+            labels = labels.to(base_config.device)
             sentences = list(sentences)
             output = net(sentences)
             l = loss(output, labels)
-            l = l / config.batch_accum
+            l = l / model_config.batch_accum
             l.backward()
             batch_total_l += l.item()
 
-            if index % config.batch_accum == 0:
+            if index % model_config.batch_accum == 0:
                 optimizer.step()
                 optimizer.zero_grad()
                 batch_total_l = 0
             torch.cuda.empty_cache()
 
-        dev_dataset = MyDataset(data_path=config.dev_data_path, mode='test')
+        dev_dataset = MyDataset(data_path=base_config.dev_data_path, mode='test')
         acc, f1, p, r = test(net, dev_dataset)
         print('dev acc', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
         if acc > cur_best_acc:
             cur_best_acc = acc
-            torch.save(net, config.model_save_path)
+            torch.save(net, model_config.model_save_path)
     return cur_best_acc
 
 
 def evaluate(net):
-    print('model name:', config.model)
+    print('model name:', model_config.model)
 
-    train_dataset = MyDataset(data_path=config.train_data_path)
+    train_dataset = MyDataset(data_path=base_config.train_data_path, mode='test')
     acc, f1, p, r = test(net, train_dataset)
     print('train acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
 
-    dev_dataset = MyDataset(data_path=config.dev_data_path)
+    dev_dataset = MyDataset(data_path=base_config.dev_data_path, mode='test')
     acc, f1, p, r = test(net, dev_dataset)
     print('dev acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
 
-    test_dataset = MyDataset(data_path=config.test_data_path)
+    test_dataset = MyDataset(data_path=base_config.test_data_path, mode='test')
     acc, f1, p, r = test(net, test_dataset)
     print('test acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
 
+    askMen_dataset = MyDataset(data_path=base_config.askMen_data_path, mode='test')
+    acc, f1, p, r = test(net, askMen_dataset)
+    print('askMen acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
+
+    askWomen_dataset = MyDataset(data_path=base_config.askWomen_data_path, mode='test')
+    acc, f1, p, r = test(net, askWomen_dataset)
+    print('askWomen acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
+
 
 if __name__ == '__main__':
+    base_config = BaseConfig()
+    configs = [
+        BertConfig(),
+        BertLargeConfig(),
+        RobertaConfig(),
+        RobertaSentimentConfig(),
+        RobertaOffensiveConfig(),
+        RobertaIronyConfig(),
+        RobertaHateConfig(),
+        RobertaEmotionConfig(),
+        RobertaLargeConfig()
+    ]
 
-    # configs = [BertConfig(), BertLargeConfig(),
-    #            RobertaConfig(), RobertaLargeConfig(),
-    #            SpanBertConfig(), SpanBertLargeConfig()]
+    for model_config in configs:
+        print('model name:', model_config.model, datetime.now())
 
-    configs = [RobertaConfig()]
-
-    for config in configs:
-        print('model name:', config.model, datetime.now())
-
-        net = TextModel().to(device=config.device)
+        net = TextModel().to(device=base_config.device)
         cur_best_acc = train(net=net)
         print('dev best:', cur_best_acc, datetime.now())
 
-        net = torch.load(config.model_save_path)
-        train_dataset = MyDataset(data_path=config.train_data_path, mode='test')
-        acc, f1, p, r = test(net, train_dataset)
-        print('train acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
-
-        dev_dataset = MyDataset(data_path=config.dev_data_path, mode='test')
-        acc, f1, p, r = test(net, dev_dataset)
-        print('dev acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
-
-        test_dataset = MyDataset(data_path=config.test_data_path,  mode='test')
-        acc, f1, p, r = test(net, test_dataset)
-        print('test acc:', acc, 'f1:', f1, 'p:', p, 'r:', r, datetime.now())
+        net = torch.load(model_config.model_save_path)
+        evaluate(net)

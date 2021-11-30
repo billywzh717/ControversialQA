@@ -1,19 +1,24 @@
 import torch
-from transformers import BertTokenizerFast, RobertaTokenizerFast
+from transformers import BertTokenizerFast, RobertaTokenizerFast, AutoTokenizer
+
+
+class BaseConfig(object):
+    base_data_path = '../../data/cqa/'
+    base_model_path = './ckp/'
+
+    train_data_path = base_data_path + 'comments_top1_AskReddit_train.tsv'
+    dev_data_path = base_data_path + 'comments_top1_AskReddit_dev.tsv'
+    test_data_path = base_data_path + 'comments_top1_AskReddit_test.tsv'
+
+    askMen_data_path = base_data_path + 'comments_top1_AskMen.tsv'
+    askWomen_data_path = base_data_path + 'comments_top1_AskWomen.tsv'
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class BertConfig(object):
-    base_path = '../../data/cqa/'
-    # train_data_path = base_path + 'comments_train.tsv'
-    # dev_data_path = base_path + 'comments_dev.tsv'
-    # test_data_path = base_path + 'comments_test.tsv'
-
-    train_data_path = base_path + 'comments_top1_train.tsv'
-    dev_data_path = base_path + 'comments_top1_dev.tsv'
-    test_data_path = base_path + 'comments_top1_test.tsv'
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = 'bert-base-cased'
+    model_name = 'bert-base-cased'
     tokenizer = BertTokenizerFast.from_pretrained(model)
 
     hidden_size = 768
@@ -23,110 +28,124 @@ class BertConfig(object):
     lr = 1e-5
     num_epoch = 7
 
-    model_save_path = './ckp/' + model + '.ckp'
-
-
-class RobertaConfig(object):
-    base_path = '../../data/cqa/'
-    # train_data_path = base_path + 'comments_train.tsv'
-    # dev_data_path = base_path + 'comments_dev.tsv'
-    # test_data_path = base_path + 'comments_test.tsv'
-
-    train_data_path = base_path + 'comments_top1_train.tsv'
-    dev_data_path = base_path + 'comments_top1_dev.tsv'
-    test_data_path = base_path + 'comments_top1_test.tsv'
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = 'roberta-base'
-    tokenizer = RobertaTokenizerFast.from_pretrained(model)
-
-    hidden_size = 768
-    train_batch_size = 4
-    batch_accum = 8
-    test_batch_size = 32
-    lr = 1e-5
-    num_epoch = 7
-
-    model_save_path = './ckp/' + model + '.ckp'
-
-
-class SpanBertConfig(object):
-    base_path = '../../data/cqa/'
-    train_data_path = base_path + 'comments_train.tsv'
-    dev_data_path = base_path + 'comments_dev.tsv'
-    test_data_path = base_path + 'comments_test.tsv'
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = 'SpanBERT/spanbert-base-cased'
-    model_name = 'spanbert-base-cased'
-    tokenizer = BertTokenizerFast.from_pretrained(model)
-
-    hidden_size = 768
-    lr = 1e-5
-    train_batch_size = 32
-    batch_accum = 1
-    test_batch_size = 32
-    num_epoch = 5
-
-    model_save_path = './ckp/' + model_name + '.ckp'
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
 
 
 class BertLargeConfig(object):
-    base_path = '../../data/csc/'
-    train_data_path = base_path + 'csc_bin_train.tsv'
-    dev_data_path = base_path + 'csc_bin_dev.tsv'
-    test_data_path = base_path + 'csc_bin_test.tsv'
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = 'bert-large-cased'
+    model_name = 'bert-large-cased'
     tokenizer = BertTokenizerFast.from_pretrained(model)
 
     hidden_size = 1024
-    train_batch_size = 32
-    batch_accum = 1
+    train_batch_size = 2
+    batch_accum = 16
     test_batch_size = 32
     lr = 1e-5
     num_epoch = 3
 
-    model_save_path = './ckp/' + model + '.ckp'
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
+
+
+class RobertaConfig(object):
+    model = 'roberta-base'
+    model_name = 'roberta-base'
+    tokenizer = RobertaTokenizerFast.from_pretrained(model)
+
+    hidden_size = 768
+    train_batch_size = 4
+    batch_accum = 8
+    test_batch_size = 32
+    lr = 1e-5
+    num_epoch = 7
+
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
+
+
+class RobertaSentimentConfig(object):
+    model = 'cardiffnlp/twitter-roberta-base-sentiment'
+    model_name = 'twitter-roberta-base-sentiment'
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
+    hidden_size = 768
+    train_batch_size = 4
+    batch_accum = 8
+    test_batch_size = 32
+    lr = 1e-5
+    num_epoch = 7
+
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
+
+
+class RobertaOffensiveConfig(object):
+    model = 'cardiffnlp/twitter-roberta-base-offensive'
+    model_name = 'twitter-roberta-base-offensive'
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
+    hidden_size = 768
+    train_batch_size = 4
+    batch_accum = 8
+    test_batch_size = 32
+    lr = 1e-5
+    num_epoch = 7
+
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
+
+
+class RobertaIronyConfig(object):
+    model = 'cardiffnlp/twitter-roberta-base-irony'
+    model_name = 'twitter-roberta-base-irony'
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
+    hidden_size = 768
+    train_batch_size = 4
+    batch_accum = 8
+    test_batch_size = 32
+    lr = 1e-5
+    num_epoch = 7
+
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
+
+
+class RobertaHateConfig(object):
+    model = 'cardiffnlp/twitter-roberta-base-hate'
+    model_name = 'twitter-roberta-base-hate'
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
+    hidden_size = 768
+    train_batch_size = 4
+    batch_accum = 8
+    test_batch_size = 32
+    lr = 1e-5
+    num_epoch = 7
+
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
+
+
+class RobertaEmotionConfig(object):
+    model = 'cardiffnlp/twitter-roberta-base-emotion'
+    model_name = 'twitter-roberta-base-emotion'
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
+    hidden_size = 768
+    train_batch_size = 4
+    batch_accum = 8
+    test_batch_size = 32
+    lr = 1e-5
+    num_epoch = 7
+
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
 
 
 class RobertaLargeConfig(object):
-    base_path = '../../data/csc/'
-    train_data_path = base_path + 'csc_bin_train.tsv'
-    dev_data_path = base_path + 'csc_bin_dev.tsv'
-    test_data_path = base_path + 'csc_bin_test.tsv'
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = 'roberta-large'
+    model_name = 'roberta-large'
     tokenizer = RobertaTokenizerFast.from_pretrained(model)
 
     hidden_size = 1024
-    train_batch_size = 32
-    batch_accum = 1
-    test_batch_size = 32
-    lr = 1e-5
-    num_epoch = 3
-
-    model_save_path = './ckp/' + model + '.ckp'
-
-
-class SpanBertLargeConfig(object):
-    base_path = '../../data/csc/'
-    train_data_path = base_path + 'csc_bin_train.tsv'
-    dev_data_path = base_path + 'csc_bin_dev.tsv'
-    test_data_path = base_path + 'csc_bin_test.tsv'
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = 'SpanBERT/spanbert-large-cased'
-    model_name = 'spanbert-large-cased'
-    tokenizer = BertTokenizerFast.from_pretrained(model)
-
-    hidden_size = 1024
-    train_batch_size = 32
-    batch_accum = 1
+    train_batch_size = 1
+    batch_accum = 32
     test_batch_size = 32
     lr = 1e-5
     num_epoch = 5
 
-    model_save_path = './ckp/' + model_name + '.ckp'
+    model_save_path = BaseConfig().base_model_path + model_name + '_AskReddit.ckp'
